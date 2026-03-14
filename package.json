@@ -1,0 +1,22 @@
+{
+  "name": "wa99-level-bot",
+  "version": "1.0.0",
+  "description": "WA99 Clan Discord level bot — Cloudflare Worker + gateway forwarder",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "register": "node register-commands.js",
+    "gateway": "node gateway.js"
+  },
+  "dependencies": {
+    "discord-interactions": "^3.4.0",
+    "discord.js": "^14.14.1"
+  },
+  "devDependencies": {
+    "wrangler": "^3.40.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,9 @@
+name = "wa99-level-bot"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "LEVELS_KV"
+id = "ac10700510784abd8eb4fff1b082f76b"
+preview_id = "be853e09ae154fd58542868f3f950148"
