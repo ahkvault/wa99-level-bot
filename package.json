@@ -4,6 +4,7 @@
   "description": "WA99 Clan Discord level bot — Cloudflare Worker + gateway forwarder",
   "type": "module",
   "scripts": {
+    "start": "node gateway.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "register": "node register-commands.js",
