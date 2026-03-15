@@ -1,12 +1,13 @@
 // gateway.js — batches XP every 60s to save Cloudflare Worker requests
+import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
 
-const WORKER_URL = process.env.WORKER_URL;
-const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-const GATEWAY_SECRET = process.env.GATEWAY_SECRET;
-const FLUSH_INTERVAL_MS = 60_000; // flush every 60 seconds
+const WORKER_URL       = process.env.WORKER_URL;
+const BOT_TOKEN        = process.env.DISCORD_BOT_TOKEN;
+const GATEWAY_SECRET   = process.env.GATEWAY_SECRET;
+const FLUSH_INTERVAL_MS = 60_000;
 
-// ✅ All level-up announcements go here
+// All level-up / streak / weekly announcements go here
 const LEVELUP_CHANNEL_ID = "1482536684557045963";
 
 const IGNORED_CHANNELS = (process.env.IGNORED_CHANNELS ?? "").split(",").filter(Boolean);
@@ -16,7 +17,7 @@ if (!WORKER_URL || !BOT_TOKEN || !GATEWAY_SECRET) {
   process.exit(1);
 }
 
-// In-memory accumulator: userId → { count, channelId, userData }
+// In-memory accumulator: userId → { count, channelId, guildId, userData }
 const pending = new Map();
 
 const client = new Client({
@@ -30,55 +31,81 @@ const client = new Client({
 client.once("ready", () => {
   console.log(`✅ WA99 Level Gateway connected as ${client.user.tag}`);
   console.log(`⏱️  Flushing XP every ${FLUSH_INTERVAL_MS / 1000}s`);
-  console.log(`📣 Level-up announcements → #${LEVELUP_CHANNEL_ID}`);
+  console.log(`📣 Announcements → #${LEVELUP_CHANNEL_ID}`);
 });
 
-// Count messages in memory — zero Worker requests here
 client.on("messageCreate", (message) => {
   if (message.author.bot) return;
-  if (!message.guildId) return;
+  if (!message.guildId)   return;
   if (IGNORED_CHANNELS.includes(message.channelId)) return;
   if (message.content.length < 2) return;
 
-  const uid = message.author.id;
+  const uid      = message.author.id;
   const existing = pending.get(uid);
-
   if (existing) {
     existing.count++;
   } else {
     pending.set(uid, {
       count: 1,
       channelId: message.channelId,
-      guildId: message.guildId,
+      guildId:   message.guildId,
       userData: {
-        id: message.author.id,
+        id:       message.author.id,
         username: message.author.username,
-        avatar: message.author.avatar,
+        avatar:   message.author.avatar,
       },
     });
   }
 });
 
-// Flush accumulated XP to the Worker every 60s — ONE request per active user
+// Helper — get the announcement channel, fall back to null
+function getAnnounceChannel() {
+  return client.channels.cache.get(LEVELUP_CHANNEL_ID) ?? null;
+}
+
+// Check if the worker has a pending weekly winner announcement
+async function checkWeeklyAnnouncement() {
+  try {
+    const res = await fetch(`${WORKER_URL}/weekly-announcement`, {
+      headers: { "x-secret": GATEWAY_SECRET },
+    });
+    if (!res.ok) return;
+    const { announcement } = await res.json();
+    if (!announcement) return;
+
+    const channel = getAnnounceChannel();
+    if (channel) {
+      await channel.send(announcement.embed);
+      console.log("📅 Posted weekly winner announcement.");
+    }
+  } catch (err) {
+    console.error("Weekly announcement check failed:", err.message);
+  }
+}
+
 async function flush() {
+  // Check for weekly winner announcement first (runs once per flush cycle)
+  await checkWeeklyAnnouncement();
+
   if (pending.size === 0) return;
 
   const snapshot = [...pending.entries()];
   pending.clear();
-
   console.log(`🔄 Flushing XP for ${snapshot.length} user(s)...`);
+
+  const channel = getAnnounceChannel();
 
   for (const [userId, data] of snapshot) {
     try {
       const res = await fetch(`${WORKER_URL}/message-xp`, {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          secret: GATEWAY_SECRET,
+          secret:       GATEWAY_SECRET,
           userId,
-          channelId: data.channelId,
-          guildId: data.guildId,
-          userData: data.userData,
+          channelId:    data.channelId,
+          guildId:      data.guildId,
+          userData:     data.userData,
           messageCount: data.count,
         }),
       });
@@ -90,21 +117,16 @@ async function flush() {
 
       const result = await res.json();
 
-      if (result.levelUp && result.embed) {
-        // Always post to the dedicated level-up channel, fall back to origin channel
-        const announceChannel =
-          client.channels.cache.get(LEVELUP_CHANNEL_ID) ??
-          client.channels.cache.get(data.channelId);
-
-        if (announceChannel) {
-          // Send the ping as plain content so the mention actually notifies,
-          // then the rich embed sits right below it
-          await announceChannel.send({
-            content: `<@${userId}>`,
-            ...result.embed,
-          });
-        }
+      // Level-up embed
+      if (result.levelUp && result.embed && channel) {
+        await channel.send({ content: `<@${userId}>`, ...result.embed });
       }
+
+      // Streak bonus embed (only on the first message of a new day)
+      if (result.streakEmbed && channel) {
+        await channel.send(result.streakEmbed);
+      }
+
     } catch (err) {
       console.error(`Flush error for ${userId}:`, err.message);
     }
