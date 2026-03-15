@@ -43,7 +43,7 @@ const commands = [
   },
   {
     name: "rob",
-    description: "Try to steal coins from someone — 30% success, 2hr cooldown 🦹",
+    description: "Try to steal coins from someone — 40% success, 2hr cooldown 🦹",
     options: [{ name: "user", description: "Member to rob", type: 6, required: true }],
   },
 
@@ -98,11 +98,78 @@ const commands = [
     ],
   },
   {
+    name: "eventend",
+    description: "[Admin] Cancel the active XP event early 🛑",
+  },
+  {
     name: "addxp",
     description: "[Admin] Add or remove XP from a member ⚡",
     options: [
       { name: "user",   description: "Target member",                              type: 6, required: true },
       { name: "amount", description: "XP to add (negative to remove, e.g. -100)", type: 4, required: true },
+    ],
+  },
+  {
+    name: "addcoins",
+    description: "[Admin] Add or remove coins from a member 💰",
+    options: [
+      { name: "user",   description: "Target member",                                  type: 6, required: true },
+      { name: "amount", description: "Coins to add (negative to remove, e.g. -500)",   type: 4, required: true },
+    ],
+  },
+  {
+    name: "setlevel",
+    description: "[Admin] Force-set a member's level directly 🎚️",
+    options: [
+      { name: "user",  description: "Target member",          type: 6, required: true },
+      { name: "level", description: "Level to set (0–1000)",  type: 4, required: true },
+    ],
+  },
+  {
+    name: "boostuser",
+    description: "[Admin] Give a member a personal 2x XP boost ⚡",
+    options: [
+      { name: "user",  description: "Target member",                         type: 6,  required: true },
+      { name: "hours", description: "Duration in hours (0.5–72)",            type: 10, required: true },
+    ],
+  },
+  {
+    name: "blacklist",
+    description: "[Admin] Block a member from earning XP or coins 🚫",
+    options: [{ name: "user", description: "Target member", type: 6, required: true }],
+  },
+  {
+    name: "unblacklist",
+    description: "[Admin] Restore a member's ability to earn XP and coins ✅",
+    options: [{ name: "user", description: "Target member", type: 6, required: true }],
+  },
+  {
+    name: "serverstats",
+    description: "[Admin] View server-wide XP, coins, and activity stats 📊",
+  },
+  {
+    name: "viewuser",
+    description: "[Admin] View full data for a member — all fields, cooldowns, boosts 🔍",
+    options: [{ name: "user", description: "Target member", type: 6, required: true }],
+  },
+  {
+    name: "announce",
+    description: "[Admin] Post a formatted announcement embed in the announcements channel 📢",
+    options: [
+      { name: "message", description: "Announcement body text",            type: 3, required: true  },
+      { name: "title",   description: "Embed title (optional)",            type: 3, required: false },
+      {
+        name: "color", description: "Embed colour (optional)", type: 3, required: false,
+        choices: [
+          { name: "🟡 Gold",   value: "gold"   },
+          { name: "🟢 Green",  value: "green"  },
+          { name: "🔵 Blue",   value: "blue"   },
+          { name: "🔴 Red",    value: "red"    },
+          { name: "🩷 Pink",   value: "pink"   },
+          { name: "🟡 Yellow", value: "yellow" },
+          { name: "⚪ White",  value: "white"  },
+        ],
+      },
     ],
   },
   {

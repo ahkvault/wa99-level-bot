@@ -48,9 +48,9 @@ const DECAY_RATE          = 0.05;  // XP lost per day beyond threshold as a frac
 const DECAY_MAX_FRACTION  = 0.50;  // maximum total XP loss from decay (50% = never lose more than half)
 
 // ── XP Multiplier Events (admin /xpevent) ─────────────────────────────────────
-const EVENT_MULT_MIN      = 1.1;   // minimum allowed multiplier
-const EVENT_MULT_MAX      = 67;    // maximum allowed multiplier
-const EVENT_DURATION_MIN  = 0.01;   // minimum duration in hours
+const EVENT_MULT_MIN      = 1.5;   // minimum allowed multiplier
+const EVENT_MULT_MAX      = 10;    // maximum allowed multiplier
+const EVENT_DURATION_MIN  = 0.5;   // minimum duration in hours
 const EVENT_DURATION_MAX  = 48;    // maximum duration in hours
 
 // ── Personal Boost (shop item) ────────────────────────────────────────────────
@@ -80,6 +80,64 @@ const LEADERBOARD_SIZE      = 10;             // how many members show on /leade
 // ── Weekly Reset ─────────────────────────────────────────────────────────────
 const WEEKLY_RESET_DAY      = 1;              // 0=Sun 1=Mon 2=Tue … 6=Sat
 const WEEKLY_RESET_HOUR_UTC = 3;              // UTC hour the cron runs (matches wrangler.toml)
+
+// ── Shop — XP Item Grants ─────────────────────────────────────────────────────
+const XP_POTION_GRANT       = 500;            // XP granted by XP Potion on success
+const XP_ELIXIR_GRANT       = 2_500;          // XP granted by XP Elixir on success
+const XP_BOMB_GRANT         = 10_000;         // XP granted by XP Bomb on success
+
+// ── Shop — XP Item Downside Chances ──────────────────────────────────────────
+const XP_POTION_FAIL_CHANCE      = 0.25;      // probability potion is a dud (0.0–1.0)
+const XP_ELIXIR_FAIL_CHANCE      = 0.20;      // probability elixir backfires
+const XP_ELIXIR_BACKFIRE_PENALTY = 500;       // XP lost on elixir backfire
+const XP_BOMB_FAIL_CHANCE        = 0.15;      // probability bomb catastrophically fails
+const XP_BOMB_CATASTROPHE_PCT    = 0.10;      // fraction of total XP lost on bomb failure (10% = 0.10)
+
+// ── Shop — Base Costs & Level Scaling ────────────────────────────────────────
+// Cost formula: baseCost + (playerLevel × levelMult)
+const XP_POTION_BASE_COST    = 200;   const XP_POTION_LEVEL_MULT    = 40;
+const XP_ELIXIR_BASE_COST    = 600;   const XP_ELIXIR_LEVEL_MULT    = 120;
+const XP_BOMB_BASE_COST      = 1_500; const XP_BOMB_LEVEL_MULT      = 400;
+const STREAK_SHIELD_COST     = 200;
+const PERSONAL_BOOST_COST    = 500;
+const COIN_DOUBLER_COST      = 400;
+const LOOT_BOX_COST          = 150;
+const MEGA_LOOT_BOX_COST     = 500;
+
+// ── Loot Box — Reward Ranges ──────────────────────────────────────────────────
+const LOOT_COINS_SMALL_MIN   = 50;    const LOOT_COINS_SMALL_MAX   = 200;
+const LOOT_XP_SMALL_MIN      = 200;   const LOOT_XP_SMALL_MAX      = 800;
+const LOOT_COINS_MED_MIN     = 300;   const LOOT_COINS_MED_MAX     = 600;
+const LOOT_XP_BIG_MIN        = 1_000; const LOOT_XP_BIG_MAX        = 2_500;
+const LOOT_JACKPOT_MIN       = 1_000; const LOOT_JACKPOT_MAX       = 2_000;   // normal box jackpot
+const LOOT_MEGA_JACKPOT_MIN  = 2_000; const LOOT_MEGA_JACKPOT_MAX  = 5_000;   // mega box jackpot
+
+// Loot box probability thresholds (cumulative, must end at 1.00)
+// Tiers in order: small coins, small XP, med coins, big XP, streak shield, personal boost, jackpot
+const LOOT_BOX_THRESHOLDS      = [0.40, 0.65, 0.80, 0.90, 0.96, 0.99, 1.00];
+const LOOT_MEGA_BOX_THRESHOLDS = [0.20, 0.40, 0.55, 0.70, 0.82, 0.92, 1.00];
+
+// ── Slots ─────────────────────────────────────────────────────────────────────
+const SLOT_PAIR_MULT           = 1.5;         // payout multiplier for a pair
+const SLOT_DEFAULT_JACKPOT_MULT = 2;          // fallback multiplier if symbol not in SLOT_PAYOUTS
+
+// ── Progress Bar ──────────────────────────────────────────────────────────────
+const PROGRESS_BAR_LENGTH      = 16;          // number of characters in the XP progress bar
+
+// ── Streak Colour Thresholds ──────────────────────────────────────────────────
+const STREAK_COLOR_GOLD_DAYS   = 30;          // streak >= this → gold  colour
+const STREAK_COLOR_PINK_DAYS   = 7;           // streak >= this → pink  colour
+const STREAK_COLOR_GREEN_DAYS  = 3;           // streak >= this → green colour
+
+// ── Admin — Boost User Limits ─────────────────────────────────────────────────
+const BOOST_USER_MIN_HOURS     = 0.5;         // minimum hours admin can boost a user
+const BOOST_USER_MAX_HOURS     = 72;          // maximum hours admin can boost a user
+
+// ── Admin — Set Level Limits ──────────────────────────────────────────────────
+const SET_LEVEL_MAX            = 1_000;       // maximum level admin can set a user to
+
+// ── Server Stats — Activity Window ───────────────────────────────────────────
+const STATS_ACTIVE_DAYS        = 30;          // days used to define an "active" member
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║                   ✋ STOP — don't edit below this line                   ║
@@ -128,15 +186,37 @@ const WORK_RESPONSES = [
 ];
 
 const SHOP_ITEMS = {
-  xp_potion:     { id: "xp_potion",     name: "🧪 XP Potion",         cost: 100,  description: "Instantly gain **+500 XP**"                              },
-  xp_elixir:     { id: "xp_elixir",     name: "⚗️ XP Elixir",         cost: 350,  description: "Instantly gain **+2,500 XP**"                            },
-  xp_bomb:       { id: "xp_bomb",       name: "💣 XP Bomb",            cost: 900,  description: "Instantly gain **+10,000 XP** — the big one"             },
-  streak_shield: { id: "streak_shield", name: "🛡️ Streak Shield",      cost: 200,  description: "Survive **one missed day** without losing your streak"   },
-  personal_boost:{ id: "personal_boost",name: "⚡ Personal 2x Boost",  cost: 500,  description: "**2x XP** from your messages for **1 hour**"             },
-  coin_doubler:  { id: "coin_doubler",  name: "💸 Coin Doubler",       cost: 400,  description: "**2x coins** from chatting for **2 hours**"              },
-  loot_box:      { id: "loot_box",      name: "🎁 Loot Box",           cost: 150,  description: "Random reward — coins, XP, boosts. Could be huge!"       },
-  mega_loot_box: { id: "mega_loot_box", name: "🎰 Mega Loot Box",      cost: 500,  description: "Guaranteed rare drop — higher chance at top rewards"     },
+  // XP items — cost scales with level, each has a downside chance
+  xp_potion:     {
+    id: "xp_potion",     name: "🧪 XP Potion",
+    baseCost: XP_POTION_BASE_COST,   levelMult: XP_POTION_LEVEL_MULT,
+    description: `Gain **+${XP_POTION_GRANT.toLocaleString()} XP** — but there's a ${Math.round(XP_POTION_FAIL_CHANCE*100)}% chance it's a dud and you lose the coins`,
+    downside: { chance: XP_POTION_FAIL_CHANCE, type: "dud" },
+  },
+  xp_elixir:     {
+    id: "xp_elixir",     name: "⚗️ XP Elixir",
+    baseCost: XP_ELIXIR_BASE_COST,   levelMult: XP_ELIXIR_LEVEL_MULT,
+    description: `Gain **+${XP_ELIXIR_GRANT.toLocaleString()} XP** — but ${Math.round(XP_ELIXIR_FAIL_CHANCE*100)}% chance it backfires and you lose ${XP_ELIXIR_BACKFIRE_PENALTY} XP instead`,
+    downside: { chance: XP_ELIXIR_FAIL_CHANCE, type: "backfire", penalty: XP_ELIXIR_BACKFIRE_PENALTY },
+  },
+  xp_bomb:       {
+    id: "xp_bomb",       name: "💣 XP Bomb",
+    baseCost: XP_BOMB_BASE_COST,     levelMult: XP_BOMB_LEVEL_MULT,
+    description: `Gain **+${XP_BOMB_GRANT.toLocaleString()} XP** — but ${Math.round(XP_BOMB_FAIL_CHANCE*100)}% chance of catastrophic failure: lose streak + ${Math.round(XP_BOMB_CATASTROPHE_PCT*100)}% of your XP`,
+    downside: { chance: XP_BOMB_FAIL_CHANCE, type: "catastrophe" },
+  },
+  // Non-XP items — fixed cost, no downside
+  streak_shield: { id: "streak_shield", name: "🛡️ Streak Shield",      baseCost: STREAK_SHIELD_COST,  levelMult: 0, description: "Survive **one missed day** without losing your streak"   },
+  personal_boost:{ id: "personal_boost",name: "⚡ Personal 2x Boost",  baseCost: PERSONAL_BOOST_COST, levelMult: 0, description: "**2x XP** from your messages for **1 hour**"             },
+  coin_doubler:  { id: "coin_doubler",  name: "💸 Coin Doubler",       baseCost: COIN_DOUBLER_COST,   levelMult: 0, description: "**2x coins** from chatting for **2 hours**"              },
+  loot_box:      { id: "loot_box",      name: "🎁 Loot Box",           baseCost: LOOT_BOX_COST,       levelMult: 0, description: "Random reward — coins, XP, boosts. Could be huge!"       },
+  mega_loot_box: { id: "mega_loot_box", name: "🎰 Mega Loot Box",      baseCost: MEGA_LOOT_BOX_COST,  levelMult: 0, description: "Guaranteed rare drop — higher chance at top rewards"     },
 };
+
+// Calculate dynamic cost for a shop item based on buyer's current level
+function getItemCost(item, level) {
+  return item.baseCost + Math.floor((item.levelMult ?? 0) * level);
+}
 
 const SLOT_SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "⭐", "💎", "7️⃣"];
 const SLOT_WEIGHTS = [30, 25, 20, 15, 6, 3, 1];
@@ -158,7 +238,7 @@ const TRIVIA_QUESTIONS = [
 // ─── Math Helpers ────────────────────────────────────────────────────────────
 function xpForLevel(l)      { return Math.floor(LEVEL_BASE * Math.pow(l, LEVEL_SCALE)); }
 function getLevelFromXP(xp) { let l = 0; while (xp >= xpForLevel(l + 1)) l++; return l; }
-function getProgressBar(cur, tot, len = 16) {
+function getProgressBar(cur, tot, len = PROGRESS_BAR_LENGTH) {
   const f = Math.round((cur / tot) * len);
   return `\`${"█".repeat(f)}${"░".repeat(len - f)}\``;
 }
@@ -197,8 +277,8 @@ function spinSlots() {
 }
 function calcSlotPayout(reels, bet) {
   const [a, b, c] = reels;
-  if (a === b && b === c) return { multiplier: SLOT_PAYOUTS[a] ?? 2, coins: Math.floor(bet * (SLOT_PAYOUTS[a] ?? 2)), type: "jackpot" };
-  if (a === b || b === c || a === c) return { multiplier: 1.5, coins: Math.floor(bet * 1.5), type: "pair" };
+  if (a === b && b === c) return { multiplier: SLOT_PAYOUTS[a] ?? SLOT_DEFAULT_JACKPOT_MULT, coins: Math.floor(bet * (SLOT_PAYOUTS[a] ?? SLOT_DEFAULT_JACKPOT_MULT)), type: "jackpot" };
+  if (a === b || b === c || a === c) return { multiplier: SLOT_PAIR_MULT, coins: Math.floor(bet * SLOT_PAIR_MULT), type: "pair" };
   return { multiplier: 0, coins: 0, type: "loss" };
 }
 function msToTime(ms) {
@@ -288,17 +368,15 @@ function updateStreak(data) {
 function openLootBox(data, mega = false) {
   const roll = Math.random();
   // mega box shifts odds toward better rewards
-  const thresholds = mega
-    ? [0.20, 0.40, 0.55, 0.70, 0.82, 0.92, 1.00]
-    : [0.40, 0.65, 0.80, 0.90, 0.96, 0.99, 1.00];
+  const thresholds = mega ? LOOT_MEGA_BOX_THRESHOLDS : LOOT_BOX_THRESHOLDS;
   const rewards = [
-    () => { const c = randInt(50, 200);   data.coins += c;                                 data.totalCoinsEarned = (data.totalCoinsEarned||0)+c; return [`💰 **${c} Coins**`,                     "Some coins!"             ]; },
-    () => { const x = randInt(200, 800);  data.xp += x; data.level = getLevelFromXP(data.xp); return [`✨ **${x} XP**`,                           "A solid XP boost!"        ]; },
-    () => { const c = randInt(300, 600);  data.coins += c;                                 data.totalCoinsEarned = (data.totalCoinsEarned||0)+c; return [`💰 **${c} Coins**`,                     "Nice haul!"              ]; },
-    () => { const x = randInt(1000,2500); data.xp += x; data.level = getLevelFromXP(data.xp); return [`✨ **${x} XP**`,                           "Big XP drop! 🔥"           ]; },
-    () => { data.streakShield = true;                                                          return ["🛡️ **Streak Shield**",                      "Streak protected!"        ]; },
-    () => { data.personalBoostExpiresAt = Date.now()+PERSONAL_BOOST_DURATION;               return ["⚡ **Personal 2x Boost**",                  "2x XP for 1 hour!"        ]; },
-    () => { const c = randInt(mega?2000:1000, mega?5000:2000); data.coins += c;            data.totalCoinsEarned = (data.totalCoinsEarned||0)+c; return [`💰 **${c} Coins** — JACKPOT!`,          "🎰 You hit the jackpot!!!"]; },
+    () => { const c = randInt(LOOT_COINS_SMALL_MIN, LOOT_COINS_SMALL_MAX); data.coins += c; data.totalCoinsEarned = (data.totalCoinsEarned||0)+c; return [`💰 **${c} Coins**`, "Some coins!"]; },
+    () => { const x = randInt(LOOT_XP_SMALL_MIN, LOOT_XP_SMALL_MAX);  data.xp += x; data.level = getLevelFromXP(data.xp); return [`✨ **${x} XP**`, "A solid XP boost!"]; },
+    () => { const c = randInt(LOOT_COINS_MED_MIN, LOOT_COINS_MED_MAX); data.coins += c; data.totalCoinsEarned = (data.totalCoinsEarned||0)+c; return [`💰 **${c} Coins**`, "Nice haul!"]; },
+    () => { const x = randInt(LOOT_XP_BIG_MIN, LOOT_XP_BIG_MAX);      data.xp += x; data.level = getLevelFromXP(data.xp); return [`✨ **${x} XP**`, "Big XP drop! 🔥"]; },
+    () => { data.streakShield = true;                                                  return ["🛡️ **Streak Shield**", "Streak protected!"]; },
+    () => { data.personalBoostExpiresAt = Date.now()+PERSONAL_BOOST_DURATION;         return ["⚡ **Personal 2x Boost**", "2x XP for 1 hour!"]; },
+    () => { const c = randInt(mega ? LOOT_MEGA_JACKPOT_MIN : LOOT_JACKPOT_MIN, mega ? LOOT_MEGA_JACKPOT_MAX : LOOT_JACKPOT_MAX); data.coins += c; data.totalCoinsEarned = (data.totalCoinsEarned||0)+c; return [`💰 **${c} Coins** — JACKPOT!`, "🎰 You hit the jackpot!!!"]; },
   ];
   let idx = 0;
   for (let i = 0; i < thresholds.length; i++) { if (roll < thresholds[i]) { idx = i; break; } }
@@ -492,6 +570,51 @@ function buildXPEventEmbed(multiplier, durationHours, expiresAt) {
   };
 }
 
+function buildShopEmbed(userCoins, userLevel) {
+  const xpItems = ["xp_potion", "xp_elixir", "xp_bomb"];
+  const otherItems = ["streak_shield", "personal_boost", "coin_doubler", "loot_box", "mega_loot_box"];
+
+  const xpRows = xpItems.map(id => {
+    const item = SHOP_ITEMS[id];
+    const cost = getItemCost(item, userLevel);
+    const ds   = item.downside;
+    const risk = ds ? `⚠️ ${Math.round(ds.chance * 100)}% downside risk` : "";
+    return `${item.name} — \`${cost.toLocaleString()} coins\` *(scales with level)*\n┗ ${item.description}\n${risk ? `┗ ${risk}\n` : ""}┗ \`/buy item:${id}\``;
+  });
+
+  const otherRows = otherItems.map(id => {
+    const item = SHOP_ITEMS[id];
+    const cost = getItemCost(item, userLevel);
+    return `${item.name} — \`${cost.toLocaleString()} coins\`\n┗ ${item.description}\n┗ \`/buy item:${id}\``;
+  });
+
+  return {
+    embeds: [{
+      color: 0x57f287,
+      title: "🏪  WA99 Clan Shop",
+      fields: [
+        {
+          name: "⚠️ XP Items — Cost scales with your level",
+          value: xpRows.join("\n\n"),
+          inline: false,
+        },
+        {
+          name: "🛒 Other Items — Fixed price",
+          value: otherRows.join("\n\n"),
+          inline: false,
+        },
+        {
+          name: "💰 Your Balance",
+          value: `**${userCoins.toLocaleString()} coins** • Level **${userLevel}**`,
+          inline: false,
+        },
+      ],
+      footer: { text: "Higher level = XP items cost more • Earn coins by chatting, /work, /daily" },
+      timestamp: new Date().toISOString(),
+    }],
+  };
+}
+
 // ─── Slash Command Handlers ───────────────────────────────────────────────────
 async function handleRank(interaction, kv) {
   if (!inBotChannel(interaction)) return wrongChannel();
@@ -544,7 +667,7 @@ async function handleStreak(interaction, kv) {
   const today       = todayUTC();
   const streak      = data.streak || 0;
   const activeToday = data.lastStreakDay === today;
-  const color       = streak >= 30 ? 0xf7b731 : streak >= 7 ? 0xeb459e : streak >= 3 ? 0x57f287 : 0x5865f2;
+  const color = streak >= STREAK_COLOR_GOLD_DAYS ? 0xf7b731 : streak >= STREAK_COLOR_PINK_DAYS ? 0xeb459e : streak >= STREAK_COLOR_GREEN_DAYS ? 0x57f287 : 0x5865f2;
   return json({
     type: 4,
     data: {
@@ -601,7 +724,8 @@ async function handleShop(interaction, kv) {
   if (!inBotChannel(interaction)) return wrongChannel();
   const user = interaction.member?.user ?? interaction.user;
   const data = await getUserData(kv, user.id);
-  return json({ type: 4, data: buildShopEmbed(data.coins || 0) });
+  const level = getLevelFromXP(data.xp);
+  return json({ type: 4, data: buildShopEmbed(data.coins || 0, level) });
 }
 
 async function handleBuy(interaction, kv) {
@@ -611,29 +735,79 @@ async function handleBuy(interaction, kv) {
   const item   = SHOP_ITEMS[itemId];
   if (!item) return ephemeral("❌ Unknown item. Use `/shop` to see what's available.");
 
-  const data = await getUserData(kv, user.id);
-  if ((data.coins || 0) < item.cost)
-    return ephemeral(`❌ Not enough coins! You have **${(data.coins||0).toLocaleString()}** but need **${item.cost}**.`);
+  const data  = await getUserData(kv, user.id);
+  const level = getLevelFromXP(data.xp);
+  const cost  = getItemCost(item, level);
 
-  data.coins = (data.coins || 0) - item.cost;
-  data.totalCoinsSpent = (data.totalCoinsSpent || 0) + item.cost;
+  if ((data.coins || 0) < cost)
+    return ephemeral(`❌ Not enough coins! You have **${(data.coins||0).toLocaleString()}** but need **${cost.toLocaleString()}** (cost scales with your level ${level}).`);
+
+  data.coins = (data.coins || 0) - cost;
+  data.totalCoinsSpent = (data.totalCoinsSpent || 0) + cost;
+
   let resultDesc = "";
+  let embedColor = 0x57f287;
+  let triggered  = false; // downside triggered?
 
   switch (itemId) {
-    case "xp_potion":
-      data.xp += 500; data.level = getLevelFromXP(data.xp);
-      resultDesc = `+**500 XP** added! You now have **${data.xp.toLocaleString()} XP** (Level **${data.level}**).`;
+    case "xp_potion": {
+      const ds = item.downside;
+      if (Math.random() < ds.chance) {
+        // Dud — coins already spent, no XP
+        triggered  = true;
+        embedColor = 0xed4245;
+        resultDesc = `💥 **Dud!** The potion fizzled out. You lost **${cost.toLocaleString()} coins** and got nothing.\n*(${Math.round(ds.chance * 100)}% chance — you got unlucky)*`;
+      } else {
+        data.xp += XP_POTION_GRANT; data.level = getLevelFromXP(data.xp);
+        resultDesc = `✅ +**${XP_POTION_GRANT.toLocaleString()} XP** added! You now have **${data.xp.toLocaleString()} XP** (Level **${data.level}**).`;
+      }
       break;
-    case "xp_elixir":
-      data.xp += 2500; data.level = getLevelFromXP(data.xp);
-      resultDesc = `+**2,500 XP** added! You now have **${data.xp.toLocaleString()} XP** (Level **${data.level}**).`;
+    }
+    case "xp_elixir": {
+      const ds = item.downside;
+      if (Math.random() < ds.chance) {
+        // Backfire — lose XP
+        triggered  = true;
+        embedColor = 0xed4245;
+        const lost = Math.min(ds.penalty, data.xp);
+        data.xp    = Math.max(0, data.xp - ds.penalty);
+        data.level = getLevelFromXP(data.xp);
+        resultDesc = `💥 **Backfire!** The elixir reacted badly. You lost **${lost.toLocaleString()} XP** instead of gaining!\nNow at **${data.xp.toLocaleString()} XP** (Level **${data.level}**).\n*(${Math.round(ds.chance * 100)}% chance — you got unlucky)*`;
+      } else {
+        data.xp += XP_ELIXIR_GRANT; data.level = getLevelFromXP(data.xp);
+        resultDesc = `✅ +**${XP_ELIXIR_GRANT.toLocaleString()} XP** added! You now have **${data.xp.toLocaleString()} XP** (Level **${data.level}**).**`;
+      }
       break;
-    case "xp_bomb":
-      data.xp += 10000; data.level = getLevelFromXP(data.xp);
-      resultDesc = `💣 **+10,000 XP** BOOM! You now have **${data.xp.toLocaleString()} XP** (Level **${data.level}**).`;
+    }
+    case "xp_bomb": {
+      const ds = item.downside;
+      if (Math.random() < ds.chance) {
+        // Catastrophe — lose streak AND 10% XP
+        triggered  = true;
+        embedColor = 0xed4245;
+        const xpLost   = Math.floor(data.xp * XP_BOMB_CATASTROPHE_PCT);
+        const oldStreak = data.streak || 0;
+        data.xp     = Math.max(0, data.xp - xpLost);
+        data.level  = getLevelFromXP(data.xp);
+        data.streak = 0;
+        data.lastStreakDay = null;
+        resultDesc = [
+          `💥 **CATASTROPHIC FAILURE!** The bomb detonated prematurely!`,
+          ``,
+          `❌ Lost **${xpLost.toLocaleString()} XP** (${Math.round(XP_BOMB_CATASTROPHE_PCT*100)}% of your total)`,
+          `❌ Lost your **${oldStreak}-day streak**`,
+          ``,
+          `Now at **${data.xp.toLocaleString()} XP** (Level **${data.level}**).`,
+          `*(${Math.round(ds.chance * 100)}% chance — you got unlucky)*`,
+        ].join("\n");
+      } else {
+        data.xp += XP_BOMB_GRANT; data.level = getLevelFromXP(data.xp);
+        resultDesc = `💣 **+${XP_BOMB_GRANT.toLocaleString()} XP** BOOM! You now have **${data.xp.toLocaleString()} XP** (Level **${data.level}**).**`;
+      }
       break;
+    }
     case "streak_shield":
-      if (data.streakShield) { data.coins += item.cost; data.totalCoinsSpent -= item.cost; return ephemeral("❌ You already have a Streak Shield active!"); }
+      if (data.streakShield) { data.coins += cost; data.totalCoinsSpent -= cost; return ephemeral("❌ You already have a Streak Shield active!"); }
       data.streakShield = true;
       resultDesc = "🛡️ **Streak Shield activated!** You're protected for one missed day.";
       break;
@@ -662,11 +836,13 @@ async function handleBuy(interaction, kv) {
     type: 4,
     data: {
       embeds: [{
-        color: 0x57f287,
-        title: `${Object.values(SHOP_ITEMS).find(i=>i.id===itemId)?.name ?? "Item"} Purchased`,
+        color: embedColor,
+        title: triggered
+          ? `💥 ${item.name} — Downside Triggered!`
+          : `${item.name} — Purchased`,
         description: resultDesc,
         fields: [{ name: "💰 Remaining Coins", value: `**${data.coins.toLocaleString()}**`, inline: true }],
-        footer: { text: "WA99 Clan Shop" },
+        footer: { text: "WA99 Clan Shop • Risk and reward 🎲" },
         timestamp: new Date().toISOString(),
       }],
     },
@@ -1066,11 +1242,263 @@ async function handleResetXP(interaction, kv) {
   });
 }
 
+// ─── Admin Command Handlers ───────────────────────────────────────────────────
+
+async function handleAddCoins(interaction, kv) {
+  if (!isAdmin(interaction)) return noPerms();
+  const targetId = interaction.data.options.find(o => o.name === "user")?.value;
+  const amount   = Number(interaction.data.options.find(o => o.name === "amount")?.value ?? 100);
+  const data     = await getUserData(kv, targetId);
+  data.coins     = Math.max(0, (data.coins || 0) + amount);
+  if (amount > 0) data.totalCoinsEarned = (data.totalCoinsEarned || 0) + amount;
+  await setUserData(kv, targetId, data);
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: amount > 0 ? 0x57f287 : 0xed4245,
+        description: `${amount > 0 ? "✅ Added" : "✅ Removed"} **${Math.abs(amount).toLocaleString()} coins** ${amount > 0 ? "to" : "from"} <@${targetId}>.\nThey now have **${data.coins.toLocaleString()} coins**.`,
+        footer: { text: "WA99 Clan Admin" },
+      }],
+    },
+  });
+}
+
+async function handleSetLevel(interaction, kv) {
+  if (!isAdmin(interaction)) return noPerms();
+  const targetId = interaction.data.options.find(o => o.name === "user")?.value;
+  const level    = Number(interaction.data.options.find(o => o.name === "level")?.value);
+  if (level < 0 || level > SET_LEVEL_MAX) return ephemeral(`❌ Level must be between 0 and ${SET_LEVEL_MAX}.`);
+  const data     = await getUserData(kv, targetId);
+  const oldLevel = data.level;
+  data.xp        = xpForLevel(level);
+  data.level     = level;
+  await setUserData(kv, targetId, data);
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: 0x5865f2,
+        description: `🎚️ Set <@${targetId}>'s level from **${oldLevel}** → **${level}**.\nXP set to **${data.xp.toLocaleString()}**.`,
+        footer: { text: "WA99 Clan Admin" },
+      }],
+    },
+  });
+}
+
+async function handleEventEnd(interaction, kv) {
+  if (!isAdmin(interaction)) return noPerms();
+  const existing = await kv.get("event:multiplier");
+  if (!existing) return ephemeral("❌ There is no active XP event to end.");
+  const ev = JSON.parse(existing);
+  await kv.delete("event:multiplier");
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: 0xed4245,
+        title: "⚡ XP Event Ended",
+        description: `The **${ev.multiplier}x XP event** has been manually ended by an admin.\nXP rates are back to normal.`,
+        footer: { text: "WA99 Clan Admin" },
+        timestamp: new Date().toISOString(),
+      }],
+    },
+  });
+}
+
+async function handleBoostUser(interaction, kv) {
+  if (!isAdmin(interaction)) return noPerms();
+  const targetId = interaction.data.options.find(o => o.name === "user")?.value;
+  const hours    = Number(interaction.data.options.find(o => o.name === "hours")?.value ?? 1);
+  if (hours < BOOST_USER_MIN_HOURS || hours > BOOST_USER_MAX_HOURS) return ephemeral(`❌ Duration must be between ${BOOST_USER_MIN_HOURS} and ${BOOST_USER_MAX_HOURS} hours.`);
+  const data     = await getUserData(kv, targetId);
+  data.personalBoostExpiresAt = Date.now() + hours * 3_600_000;
+  await setUserData(kv, targetId, data);
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: 0xfee75c,
+        title: "⚡ Personal Boost Granted!",
+        description: `<@${targetId}> has been given a **${PERSONAL_BOOST_MULT}x XP boost** for **${hours} hour${hours === 1 ? "" : "s"}**!\nExpires <t:${Math.floor(data.personalBoostExpiresAt / 1000)}:R>.`,
+        footer: { text: "WA99 Clan Admin" },
+        timestamp: new Date().toISOString(),
+      }],
+    },
+  });
+}
+
+async function handleBlacklist(interaction, kv) {
+  if (!isAdmin(interaction)) return noPerms();
+  const targetId = interaction.data.options.find(o => o.name === "user")?.value;
+  const data     = await getUserData(kv, targetId);
+  data.blacklisted = true;
+  await setUserData(kv, targetId, data);
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: 0xed4245,
+        description: `🚫 <@${targetId}> has been **blacklisted** and will no longer earn XP or coins.`,
+        footer: { text: "WA99 Clan Admin" },
+      }],
+    },
+  });
+}
+
+async function handleUnblacklist(interaction, kv) {
+  if (!isAdmin(interaction)) return noPerms();
+  const targetId = interaction.data.options.find(o => o.name === "user")?.value;
+  const data     = await getUserData(kv, targetId);
+  data.blacklisted = false;
+  await setUserData(kv, targetId, data);
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: 0x57f287,
+        description: `✅ <@${targetId}> has been **unblacklisted** and can earn XP and coins again.`,
+        footer: { text: "WA99 Clan Admin" },
+      }],
+    },
+  });
+}
+
+async function handleServerStats(interaction, kv) {
+  if (!isAdmin(interaction)) return noPerms();
+  const list  = await kv.list({ prefix: "user:" });
+  let totalXP = 0, totalCoins = 0, totalMessages = 0, activeCount = 0;
+  const thirtyDaysAgo = Date.now() - STATS_ACTIVE_DAYS * 86_400_000;
+
+  for (const { name } of list.keys) {
+    const raw = await kv.get(name);
+    if (!raw) continue;
+    const d = JSON.parse(raw);
+    totalXP       += d.xp       || 0;
+    totalCoins    += d.coins    || 0;
+    totalMessages += d.messages || 0;
+    if (d.lastXpAt && d.lastXpAt > thirtyDaysAgo) activeCount++;
+  }
+
+  const event = await getMultiplierEvent(kv);
+  const weeklyEntries = await getWeeklyLeaderboard(kv);
+
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: 0x5865f2,
+        title: "📊  WA99 Server Stats",
+        fields: [
+          { name: "👥 Total Members Tracked", value: `**${list.keys.length.toLocaleString()}**`,  inline: true },
+          { name: `🟢 Active (${STATS_ACTIVE_DAYS} days)`,      value: `**${activeCount.toLocaleString()}**`,       inline: true },
+          { name: "✨ Total XP Earned",         value: `**${totalXP.toLocaleString()}**`,           inline: true },
+          { name: "💰 Total Coins in Circulation", value: `**${totalCoins.toLocaleString()}**`,    inline: true },
+          { name: "💬 Total Messages",          value: `**${totalMessages.toLocaleString()}**`,     inline: true },
+          { name: "📅 Weekly Active",           value: `**${weeklyEntries.length}** members`,       inline: true },
+          {
+            name: "⚡ Active XP Event",
+            value: event
+              ? `**${event.multiplier}x** — expires <t:${Math.floor(event.expiresAt / 1000)}:R>`
+              : "None",
+            inline: false,
+          },
+        ],
+        footer: { text: "WA99 Clan Admin • Server Overview" },
+        timestamp: new Date().toISOString(),
+      }],
+    },
+  });
+}
+
+async function handleAnnounce(interaction, kv, env) {
+  if (!isAdmin(interaction)) return noPerms();
+  const message = interaction.data.options.find(o => o.name === "message")?.value;
+  const title   = interaction.data.options.find(o => o.name === "title")?.value ?? "📢  WA99 Clan Announcement";
+  const color   = interaction.data.options.find(o => o.name === "color")?.value ?? "gold";
+
+  const colorMap = {
+    gold:    0xf7b731,
+    green:   0x57f287,
+    blue:    0x5865f2,
+    red:     0xed4245,
+    pink:    0xeb459e,
+    yellow:  0xfee75c,
+    white:   0xffffff,
+  };
+
+  const embedColor = colorMap[color] ?? 0xf7b731;
+
+  // Queue the announcement for the gateway to post in LEVELUP_CHANNEL_ID
+  await kv.put("admin:pending_announcement", JSON.stringify({
+    embeds: [{
+      color: embedColor,
+      title,
+      description: message,
+      footer: { text: "WA99 Clan" },
+      timestamp: new Date().toISOString(),
+    }],
+  }), { expirationTtl: 300 }); // expires in 5 min if gateway doesn't pick it up
+
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: 0x57f287,
+        description: `✅ Announcement queued! It will post in <#${LEVELUP_CHANNEL_ID}> within 60 seconds.`,
+        footer: { text: "WA99 Clan Admin" },
+      }],
+      flags: 64, // ephemeral — only visible to the admin
+    },
+  });
+}
+
+async function handleViewUser(interaction, kv) {
+  if (!isAdmin(interaction)) return noPerms();
+  const targetId   = interaction.data.options.find(o => o.name === "user")?.value;
+  const targetUser = interaction.data.resolved?.users?.[targetId];
+  const data       = await getUserData(kv, targetId);
+  const level      = getLevelFromXP(data.xp);
+  const hasBoost   = data.personalBoostExpiresAt && Date.now() < data.personalBoostExpiresAt;
+  const hasDoubler = data.coinDoublerExpiresAt   && Date.now() < data.coinDoublerExpiresAt;
+  const robCd  = data.lastRobAt  && Date.now() - data.lastRobAt  < ROB_COOLDOWN_MS;
+  const workCd = data.lastWorkAt && Date.now() - data.lastWorkAt < WORK_COOLDOWN_MS;
+
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: 0x5865f2,
+        title: `🔍 Admin View — ${targetUser?.username ?? targetId}`,
+        fields: [
+          { name: "⚡ Level",          value: `**${level}**`,                                                              inline: true },
+          { name: "✨ XP",             value: `**${data.xp.toLocaleString()}**`,                                           inline: true },
+          { name: "💰 Coins",          value: `**${(data.coins||0).toLocaleString()}**`,                                   inline: true },
+          { name: "🔥 Streak",         value: `**${data.streak||0}** days${data.streakShield?" 🛡️":""}`,                   inline: true },
+          { name: "💬 Messages",       value: `**${(data.messages||0).toLocaleString()}**`,                                inline: true },
+          { name: "🚫 Blacklisted",    value: data.blacklisted ? "**Yes**" : "No",                                         inline: true },
+          { name: "💸 Total Earned",   value: `**${(data.totalCoinsEarned||0).toLocaleString()}** coins`,                  inline: true },
+          { name: "🛍️ Total Spent",   value: `**${(data.totalCoinsSpent||0).toLocaleString()}** coins`,                   inline: true },
+          { name: "📅 Last Active",    value: data.lastXpAt ? `<t:${Math.floor(data.lastXpAt/1000)}:R>` : "Never",        inline: true },
+          { name: "⚡ XP Boost",       value: hasBoost   ? `Active until <t:${Math.floor(data.personalBoostExpiresAt/1000)}:R>` : "None", inline: true },
+          { name: "💸 Coin Doubler",   value: hasDoubler ? `Active until <t:${Math.floor(data.coinDoublerExpiresAt/1000)}:R>`   : "None", inline: true },
+          { name: "🔨 Work CD",        value: workCd ? `<t:${Math.floor((data.lastWorkAt+WORK_COOLDOWN_MS)/1000)}:R>` : "Ready", inline: true },
+          { name: "🦹 Rob CD",         value: robCd  ? `<t:${Math.floor((data.lastRobAt+ROB_COOLDOWN_MS)/1000)}:R>`   : "Ready", inline: true },
+        ],
+        footer: { text: "WA99 Clan Admin • Full User View" },
+        timestamp: new Date().toISOString(),
+      }],
+      flags: 64,
+    },
+  });
+}
+
 // ─── Message XP Handler ───────────────────────────────────────────────────────
 async function handleMessageXP(body, kv, secret) {
   if (body.secret !== secret) return new Response("Unauthorized", { status: 401 });
   const { userId, channelId, userData: discordUser, messageCount = 1 } = body;
   const data     = await getUserData(kv, userId);
+  if (data.blacklisted) return new Response(JSON.stringify({ levelUp: false }), { headers: { "Content-Type": "application/json" } });
   const oldLevel = getLevelFromXP(data.xp);
   const event    = await getMultiplierEvent(kv);
   const serverMult    = event?.multiplier ?? 1;
@@ -1153,6 +1581,13 @@ export default {
       return handleMessageXP(await request.json(), env.LEVELS_KV, env.GATEWAY_SECRET);
     if (url.pathname === "/weekly-announcement" && request.method === "GET")
       return handleWeeklyAnnouncement(request, env.LEVELS_KV, env.GATEWAY_SECRET);
+    if (url.pathname === "/admin-announcement" && request.method === "GET") {
+      if (request.headers.get("x-secret") !== env.GATEWAY_SECRET) return new Response("Unauthorized", { status: 401 });
+      const raw = await env.LEVELS_KV.get("admin:pending_announcement");
+      if (!raw) return json({ announcement: null });
+      await env.LEVELS_KV.delete("admin:pending_announcement");
+      return json({ announcement: JSON.parse(raw) });
+    }
     if (url.pathname === "/interactions" && request.method === "POST") {
       const sig     = request.headers.get("x-signature-ed25519");
       const ts      = request.headers.get("x-signature-timestamp");
@@ -1181,6 +1616,15 @@ export default {
         if (cmd === "givexp")            return handleGiveXP(interaction, env.LEVELS_KV);
         if (cmd === "xpevent")           return handleXPEvent(interaction, env.LEVELS_KV);
         if (cmd === "addxp")             return handleAddXP(interaction, env.LEVELS_KV);
+        if (cmd === "addcoins")          return handleAddCoins(interaction, env.LEVELS_KV);
+        if (cmd === "setlevel")          return handleSetLevel(interaction, env.LEVELS_KV);
+        if (cmd === "eventend")          return handleEventEnd(interaction, env.LEVELS_KV);
+        if (cmd === "boostuser")         return handleBoostUser(interaction, env.LEVELS_KV);
+        if (cmd === "blacklist")         return handleBlacklist(interaction, env.LEVELS_KV);
+        if (cmd === "unblacklist")       return handleUnblacklist(interaction, env.LEVELS_KV);
+        if (cmd === "serverstats")       return handleServerStats(interaction, env.LEVELS_KV);
+        if (cmd === "announce")          return handleAnnounce(interaction, env.LEVELS_KV, env);
+        if (cmd === "viewuser")          return handleViewUser(interaction, env.LEVELS_KV);
         if (cmd === "resetxp")           return handleResetXP(interaction, env.LEVELS_KV);
       }
       return new Response("Unknown interaction", { status: 400 });

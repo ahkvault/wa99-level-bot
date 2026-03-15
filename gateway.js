@@ -1,5 +1,4 @@
 // gateway.js — batches XP every 60s to save Cloudflare Worker requests
-import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
 
 const WORKER_URL       = process.env.WORKER_URL;
@@ -72,7 +71,6 @@ async function checkWeeklyAnnouncement() {
     if (!res.ok) return;
     const { announcement } = await res.json();
     if (!announcement) return;
-
     const channel = getAnnounceChannel();
     if (channel) {
       await channel.send(announcement.embed);
@@ -83,9 +81,29 @@ async function checkWeeklyAnnouncement() {
   }
 }
 
+// Check if an admin queued an announcement via /announce
+async function checkAdminAnnouncement() {
+  try {
+    const res = await fetch(`${WORKER_URL}/admin-announcement`, {
+      headers: { "x-secret": GATEWAY_SECRET },
+    });
+    if (!res.ok) return;
+    const { announcement } = await res.json();
+    if (!announcement) return;
+    const channel = getAnnounceChannel();
+    if (channel) {
+      await channel.send(announcement);
+      console.log("📣 Posted admin announcement.");
+    }
+  } catch (err) {
+    console.error("Admin announcement check failed:", err.message);
+  }
+}
+
 async function flush() {
-  // Check for weekly winner announcement first (runs once per flush cycle)
+  // Check for weekly winner and admin announcements each flush cycle
   await checkWeeklyAnnouncement();
+  await checkAdminAnnouncement();
 
   if (pending.size === 0) return;
 
