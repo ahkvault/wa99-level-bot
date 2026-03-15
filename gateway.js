@@ -161,7 +161,7 @@ async function keepAlive() {
   }
 }
 
-setInterval(keepAlive, 5 * 60 * 1000); // every 5 minutes
+setInterval(keepAlive, 30 * 1000); // every 30 seconds — Cloudflare goes cold fast
 setInterval(flush, FLUSH_INTERVAL_MS);
 
 client.login(BOT_TOKEN);
