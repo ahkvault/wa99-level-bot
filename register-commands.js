@@ -67,26 +67,43 @@ const commands = [
     }],
   },
 
-  // ── Games ─────────────────────────────────────────────────────────────────
-  {
-    name: "coinflip",
-    description: "Flip a coin and bet your coins 🪙",
-    options: [
-      { name: "side",   description: "Pick a side", type: 3, required: true,
-        choices: [{ name: "🟡 Heads", value: "heads" }, { name: "⚫ Tails", value: "tails" }] },
-      { name: "amount", description: "Coins to bet (min 10, max 5,000)", type: 4, required: true },
-    ],
-  },
-  {
-    name: "slots",
-    description: "Spin the slot machine 🎰",
-    options: [{ name: "amount", description: "Coins to bet (min 10, max 5,000)", type: 4, required: true }],
-  },
-  {
-    name: "trivia",
-    description: "Answer a trivia question for 100 coins 🧠 (changes every hour)",
-    options: [{ name: "answer", description: "Your answer (leave blank to see the question)", type: 3, required: false }],
-  },
+// ── Games ─────────────────────────────────────────────────────────────────
+{ name: "coinflip", description: "Flip a coin and bet 🪙",
+  options: [
+    { name: "side", description: "Pick a side", type: 3, required: true,
+      choices: [{ name: "🟡 Heads", value: "heads" }, { name: "⚫ Tails", value: "tails" }] },
+    { name: "amount", description: "Coins to bet", type: 4, required: true },
+  ]},
+{ name: "slots", description: "Spin the slot machine 🎰",
+  options: [{ name: "amount", description: "Coins to bet", type: 4, required: true }]},
+{ name: "dice", description: "Guess the dice roll — High, Low, or Seven 🎲",
+  options: [
+    { name: "guess", description: "Your guess", type: 3, required: true,
+      choices: [
+        { name: "🔺 High (4–6) — 2x", value: "high" },
+        { name: "🔻 Low (1–3) — 2x",  value: "low"  },
+        { name: "7️⃣ Seven (2 dice = 7) — 4x", value: "seven" },
+      ]},
+    { name: "amount", description: "Coins to bet", type: 4, required: true },
+  ]},
+{ name: "roulette", description: "Spin the roulette wheel 🎡",
+  options: [
+    { name: "bet", description: "What to bet on", type: 3, required: true,
+      choices: [
+        { name: "🔴 Red — 2x",        value: "red"    },
+        { name: "⚫ Black — 2x",       value: "black"  },
+        { name: "1️⃣ Dozen 1–12 — 3x", value: "dozen1" },
+        { name: "2️⃣ Dozen 13–24 — 3x",value: "dozen2" },
+        { name: "3️⃣ Dozen 25–36 — 3x",value: "dozen3" },
+        { name: "🎯 Exact Number — 35x",value: "number"},
+      ]},
+    { name: "amount", description: "Coins to bet", type: 4, required: true },
+    { name: "value", description: "Number to bet on (0–36) — only for exact number bet", type: 4, required: false },
+  ]},
+{ name: "blackjack", description: "Play blackjack against the dealer 🃏",
+  options: [{ name: "amount", description: "Coins to bet", type: 4, required: true }]},
+{ name: "trivia", description: "Answer a trivia question for coins 🧠",
+  options: [{ name: "answer", description: "Your answer (leave blank to see question)", type: 3, required: false }]},
 
   // ── Admin ─────────────────────────────────────────────────────────────────
   {

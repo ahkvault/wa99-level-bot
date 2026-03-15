@@ -16,28 +16,34 @@ const LEVEL_BASE          = 100;   // XP needed for level 1 (scales up from here
 const LEVEL_SCALE         = 1.35;  // exponent — higher = steeper curve, lower = easier levelling
 
 // ── Coins ─────────────────────────────────────────────────────────────────────
-const COINS_PER_FLUSH     = 5;     // base coins earned per message batch from chatting
-const DAILY_COINS_MIN     = 100;   // minimum /daily reward
-const DAILY_COINS_MAX     = 300;   // maximum /daily reward
-const DAILY_STREAK_BONUS_XP = 100; // bonus XP from /daily if streak >= 7 days
+const COINS_PER_FLUSH       = 5;     // base coins earned per message batch from chatting
+// Daily reward scales with level: reward = base + (level × levelMult)
+const DAILY_COINS_BASE_MIN  = 100;   // minimum /daily at level 0
+const DAILY_COINS_BASE_MAX  = 300;   // maximum /daily at level 0
+const DAILY_COINS_LEVEL_MULT = 5;    // extra coins per level (level 50 = +250 to both min and max)
+const DAILY_STREAK_BONUS_XP  = 100;  // bonus XP from /daily if streak >= 7 days
 
 // ── Work ──────────────────────────────────────────────────────────────────────
-const WORK_COOLDOWN_MS    = 3_600_000; // cooldown between /work uses       (default: 1 hour)
-const WORK_COINS_MIN      = 40;        // minimum coins earned from /work
-const WORK_COINS_MAX      = 120;       // maximum coins earned from /work
+const WORK_COOLDOWN_MS      = 3_600_000; // cooldown between /work uses       (default: 1 hour)
+// Work reward scales with level: reward = base + (level × levelMult)
+const WORK_COINS_BASE_MIN   = 40;        // minimum /work payout at level 0
+const WORK_COINS_BASE_MAX   = 120;       // maximum /work payout at level 0
+const WORK_COINS_LEVEL_MULT = 8;         // extra coins per level (level 50 = +400 to both min and max)
 
 // ── Rob ───────────────────────────────────────────────────────────────────────
-const ROB_COOLDOWN_MS     = 7_200_000; // cooldown between /rob attempts     (default: 2 hours)
-const ROB_SUCCESS_CHANCE  = 0.30;      // probability of a successful rob     (0.0–1.0)
-const ROB_MAX_STEAL_PCT   = 0.25;      // max fraction of target's coins that can be stolen (0.0–1.0)
-const ROB_MIN_TARGET_COINS = 50;       // target must have at least this many coins to be robbed
-const ROB_FINE_MIN        = 30;        // minimum fine if caught
-const ROB_FINE_MAX        = 80;        // maximum fine if caught
+const ROB_COOLDOWN_MS       = 7_200_000; // cooldown between /rob attempts     (default: 2 hours)
+const ROB_SUCCESS_CHANCE    = 0.30;      // probability of a successful rob     (0.0–1.0)
+const ROB_MAX_STEAL_PCT     = 0.25;      // max fraction of target's coins that can be stolen (0.0–1.0)
+const ROB_MIN_TARGET_COINS  = 50;        // target must have at least this many coins to be robbed
+const ROB_FINE_MIN_PCT      = 0.05;      // minimum fine if caught as % of robber's coins (5%)
+const ROB_FINE_MAX_PCT      = 0.15;      // maximum fine if caught as % of robber's coins (15%)
 
 // ── Streaks ───────────────────────────────────────────────────────────────────
-const STREAK_BONUS_XP       = 50;   // base bonus XP for maintaining a daily streak
-const STREAK_WEEKLY_BONUS   = 25;   // extra XP added per 7-day streak milestone on top of base
-const STREAK_MILESTONE_DAYS = [7, 14, 30, 60, 100]; // days that get a special milestone embed
+// Streak bonus scales with level: bonus = base + (level × levelMult)
+const STREAK_BONUS_XP_BASE    = 50;   // base bonus XP at level 0
+const STREAK_BONUS_LEVEL_MULT = 2;    // extra XP per level (level 50 = +100 on top of base)
+const STREAK_WEEKLY_BONUS     = 25;   // extra XP added per 7-day streak milestone on top of base
+const STREAK_MILESTONE_DAYS   = [7, 14, 30, 60, 100]; // days that trigger a milestone embed
 
 // ── Give XP ───────────────────────────────────────────────────────────────────
 const GIVE_XP_DAILY_CAP   = 200;   // max XP a member can gift to others per day
@@ -70,9 +76,27 @@ const TRANSFER_MIN          = 1;              // minimum coins per transfer
 const TRANSFER_MAX          = 10_000;         // maximum coins per transfer
 
 // ── Gambling ──────────────────────────────────────────────────────────────────
-const GAMBLE_BET_MIN        = 10;             // minimum bet for coinflip / slots
-const GAMBLE_BET_MAX        = 5_000;          // maximum bet for coinflip / slots
-const COINFLIP_WIN_CHANCE   = 0.50;           // probability of winning coinflip (0.5 = fair)
+const GAMBLE_BET_MIN           = 10;      // minimum bet for all games
+const GAMBLE_BET_MAX           = 10_000;  // maximum bet for all games
+const COINFLIP_WIN_CHANCE      = 0.50;    // probability of winning coinflip (0.5 = fair)
+
+// Dice game
+const DICE_HIGH_MIN            = 4;       // high = roll >= this (on 1d6)
+const DICE_LOW_MAX             = 3;       // low  = roll <= this (on 1d6)
+const DICE_WIN_MULT            = 2.0;     // payout multiplier for correct guess
+const DICE_SEVEN_MULT          = 4.0;     // payout for rolling exactly 7 on 2d6
+
+// Roulette
+const ROULETTE_RED_NUMBERS     = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+const ROULETTE_RED_MULT        = 2.0;     // payout for red/black bet
+const ROULETTE_DOZEN_MULT      = 3.0;     // payout for dozen bet (1-12, 13-24, 25-36)
+const ROULETTE_NUMBER_MULT     = 35.0;    // payout for exact number (0–36)
+const ROULETTE_NUMBERS         = 37;      // 0–36
+
+// Blackjack
+const BLACKJACK_WIN_MULT       = 2.0;     // payout for beating dealer
+const BLACKJACK_BLACKJACK_MULT = 2.5;     // payout for natural blackjack (ace + 10-value)
+const BLACKJACK_DEALER_STAND   = 17;      // dealer stands at this value or higher
 
 // ── Leaderboards ─────────────────────────────────────────────────────────────
 const LEADERBOARD_SIZE      = 10;             // how many members show on /leaderboard / /richlist
@@ -349,14 +373,16 @@ function updateStreak(data) {
   const yesterday = new Date();
   yesterday.setUTCDate(yesterday.getUTCDate() - 1);
   const yStr = yesterday.toISOString().slice(0, 10);
+  const level = getLevelFromXP(data.xp);
+  const baseBonus = STREAK_BONUS_XP_BASE + level * STREAK_BONUS_LEVEL_MULT;
   let streakBonus = 0;
   if (data.lastStreakDay === yStr) {
     data.streak = (data.streak || 0) + 1;
-    streakBonus = STREAK_BONUS_XP + Math.floor(data.streak / 7) * STREAK_WEEKLY_BONUS;
+    streakBonus = baseBonus + Math.floor(data.streak / 7) * STREAK_WEEKLY_BONUS;
   } else if (data.streakShield) {
     data.streak = (data.streak || 0) + 1;
     data.streakShield = false;
-    streakBonus = STREAK_BONUS_XP;
+    streakBonus = baseBonus;
   } else {
     data.streak = 1;
   }
@@ -475,22 +501,6 @@ function buildStreakEmbed(user, streak, bonus) {
       title: isMilestone ? `🔥 ${streak}-DAY STREAK MILESTONE!` : `🔥 Daily Streak Bonus!`,
       description: `<@${user.id}> is on a **${streak}-day streak**!\n+**${bonus} bonus XP** awarded.${isMilestone ? "\n\n🏆 **Milestone reached!** Keep showing up!" : ""}`,
       footer: { text: "WA99 Clan • Show up every day" },
-      timestamp: new Date().toISOString(),
-    }],
-  };
-}
-
-function buildShopEmbed(userCoins) {
-  const rows = Object.values(SHOP_ITEMS).map(item =>
-    `${item.name} — \`${item.cost} coins\`\n┗ ${item.description}\n┗ \`/buy item:${item.id}\``
-  );
-  return {
-    embeds: [{
-      color: 0x57f287,
-      title: "🏪  WA99 Clan Shop",
-      description: rows.join("\n\n"),
-      fields: [{ name: "💰 Your Balance", value: `**${userCoins.toLocaleString()} coins**`, inline: false }],
-      footer: { text: "Earn coins by chatting & /work /daily • WA99 Clan" },
       timestamp: new Date().toISOString(),
     }],
   };
@@ -855,8 +865,10 @@ async function handleDaily(interaction, kv) {
   const data  = await getUserData(kv, user.id);
   const today = todayUTC();
   if (data.lastDailyAt === today) return ephemeral("❌ Already claimed today. Come back tomorrow!");
-  const coins   = randInt(DAILY_COINS_MIN, DAILY_COINS_MAX);
-  const bonusXP = data.streak >= 7 ? DAILY_STREAK_BONUS_XP : 0;
+  const level    = getLevelFromXP(data.xp);
+  const levelBonus = level * DAILY_COINS_LEVEL_MULT;
+  const coins    = randInt(DAILY_COINS_BASE_MIN + levelBonus, DAILY_COINS_BASE_MAX + levelBonus);
+  const bonusXP  = data.streak >= 7 ? DAILY_STREAK_BONUS_XP : 0;
   data.coins = (data.coins || 0) + coins;
   data.totalCoinsEarned = (data.totalCoinsEarned || 0) + coins;
   data.xp   += bonusXP;
@@ -871,9 +883,10 @@ async function handleDaily(interaction, kv) {
         title: "🎁 Daily Reward Claimed!",
         description: `<@${user.id}> claimed their daily reward!`,
         fields: [
-          { name: "💰 Coins",       value: `+**${coins}**`,                                             inline: true },
-          { name: "✨ Bonus XP",    value: bonusXP > 0 ? `+**${bonusXP}** (streak bonus!)` : "None",   inline: true },
-          { name: "💰 Balance",     value: `**${data.coins.toLocaleString()} coins**`,                  inline: true },
+          { name: "💰 Coins",       value: `+**${coins}**`,                                                   inline: true },
+          { name: "✨ Bonus XP",    value: bonusXP > 0 ? `+**${bonusXP}** (streak bonus!)` : "None",         inline: true },
+          { name: "💰 Balance",     value: `**${data.coins.toLocaleString()} coins**`,                        inline: true },
+          { name: "📈 Level Bonus", value: `+**${levelBonus}** coins/day from Level ${level}`,                inline: false },
         ],
         footer: { text: "WA99 Clan • Come back tomorrow!" },
         timestamp: new Date().toISOString(),
@@ -893,7 +906,9 @@ async function handleWork(interaction, kv) {
     return ephemeral(`⏳ You're on cooldown! Work again <t:${Math.floor((data.lastWorkAt + WORK_COOLDOWN_MS)/1000)}:R> (${msToTime(remaining)}).`);
   }
 
-  const coins      = randInt(WORK_COINS_MIN, WORK_COINS_MAX);
+  const level      = getLevelFromXP(data.level ? xpForLevel(data.level) : data.xp);
+  const levelBonus = level * WORK_COINS_LEVEL_MULT;
+  const coins      = randInt(WORK_COINS_BASE_MIN + levelBonus, WORK_COINS_BASE_MAX + levelBonus);
   const hasDoubler = data.coinDoublerExpiresAt && now < data.coinDoublerExpiresAt;
   const earned     = hasDoubler ? coins * COIN_DOUBLER_MULT : coins;
   const response   = WORK_RESPONSES[Math.floor(Math.random() * WORK_RESPONSES.length)];
@@ -909,7 +924,7 @@ async function handleWork(interaction, kv) {
       embeds: [{
         color: 0x57f287,
         title: "🔨 Work Complete!",
-        description: `${response}.\n\n💰 Earned **${earned} coins**${hasDoubler ? " (2x doubler active!)" : ""}!`,
+        description: `${response}.\n\n💰 Earned **${earned} coins**${hasDoubler ? " (2x doubler active!)" : ""}!\n📈 Level **${level}** bonus: +${levelBonus} coins/session`,
         fields: [
           { name: "💰 New Balance", value: `**${data.coins.toLocaleString()} coins**`, inline: true },
           { name: "⏰ Next Work",   value: `<t:${Math.floor((now + WORK_COOLDOWN_MS)/1000)}:R>`,     inline: true },
@@ -968,7 +983,9 @@ async function handleRob(interaction, kv) {
     });
   } else {
     // Failed — pay a fine
-    const fine = randInt(ROB_FINE_MIN, ROB_FINE_MAX);
+    const fineMin = Math.floor((robberData.coins || 0) * ROB_FINE_MIN_PCT);
+    const fineMax = Math.floor((robberData.coins || 0) * ROB_FINE_MAX_PCT);
+    const fine = fineMax > fineMin ? randInt(fineMin, fineMax) : fineMin;
     robberData.coins = Math.max(0, (robberData.coins || 0) - fine);
     await setUserData(kv, robber.id, robberData);
     return json({
@@ -1069,7 +1086,7 @@ async function handleTrivia(interaction, kv) {
         embeds: [{
           color: 0x57f287,
           title: "🧠 Correct!",
-          description: `✅ <@${user.id}> got it right!\nThe answer was **${question.a}**.\n\n+**${TRIVIA_REWARD_COINS} coins** added to your balance!`,
+          description: `**${question.q}**\n\n✅ <@${user.id}> got it right! The answer was **${question.a}**.\n\n+**${TRIVIA_REWARD_COINS} coins** added to your balance!`,
           fields: [{ name: "💰 New Balance", value: `**${data.coins.toLocaleString()} coins**`, inline: true }],
           footer: { text: `WA99 Clan Trivia • New question every ${TRIVIA_CYCLE_MS / 60000} minutes` },
           timestamp: new Date().toISOString(),
@@ -1083,7 +1100,7 @@ async function handleTrivia(interaction, kv) {
         embeds: [{
           color: 0xed4245,
           title: "🧠 Wrong!",
-          description: `❌ <@${user.id}> got it wrong.\nThe correct answer was **${question.a}**. Better luck next time!`,
+          description: `**${question.q}**\n\n❌ <@${user.id}> got it wrong.\nThe correct answer was **${question.a}**.\n\nChoices were: ${question.choices.map(c => `\`${c}\``).join(", ")}`,
           footer: { text: `WA99 Clan Trivia • New question every ${TRIVIA_CYCLE_MS / 60000} minutes` },
           timestamp: new Date().toISOString(),
         }],
@@ -1493,6 +1510,195 @@ async function handleViewUser(interaction, kv) {
   });
 }
 
+async function handleDice(interaction, kv) {
+  if (!inBotChannel(interaction)) return wrongChannel();
+  const user   = interaction.member?.user ?? interaction.user;
+  const choice = interaction.data.options.find(o => o.name === "guess")?.value; // high / low / seven
+  const bet    = Number(interaction.data.options.find(o => o.name === "amount")?.value);
+  if (bet < GAMBLE_BET_MIN) return ephemeral(`❌ Minimum bet is **${GAMBLE_BET_MIN} coins**.`);
+  if (bet > GAMBLE_BET_MAX) return ephemeral(`❌ Maximum bet is **${GAMBLE_BET_MAX.toLocaleString()} coins**.`);
+  const data = await getUserData(kv, user.id);
+  if ((data.coins || 0) < bet) return ephemeral(`❌ Not enough coins! You have **${(data.coins||0).toLocaleString()}**.`);
+
+  const roll = randInt(1, 6);
+  let won = false, mult = 0, resultLabel = "";
+
+  if (choice === "seven") {
+    // Special — needs exactly 7 on two dice
+    const roll2 = randInt(1, 6);
+    const total = roll + roll2;
+    resultLabel = `🎲 You rolled **${roll}** + **${roll2}** = **${total}**`;
+    won  = total === 7;
+    mult = DICE_SEVEN_MULT;
+  } else {
+    resultLabel = `🎲 You rolled a **${roll}**`;
+    won  = choice === "high" ? roll >= DICE_HIGH_MIN : roll <= DICE_LOW_MAX;
+    mult = DICE_WIN_MULT;
+  }
+
+  const payout = won ? Math.floor(bet * mult) : 0;
+  data.coins   = (data.coins || 0) - bet + payout;
+  if (data.coins < 0) data.coins = 0;
+  if (won) data.totalCoinsEarned = (data.totalCoinsEarned || 0) + payout;
+  await setUserData(kv, user.id, data);
+
+  const guessLabel = choice === "high" ? `🔺 High (${DICE_HIGH_MIN}–6)` : choice === "low" ? `🔻 Low (1–${DICE_LOW_MAX})` : `7️⃣ Seven (2 dice = 7)`;
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: won ? 0x57f287 : 0xed4245,
+        title: won ? "🎲 Correct!" : "🎲 Wrong!",
+        description: `${resultLabel}\nYou guessed **${guessLabel}**.\n\n${won ? `✅ Won **${payout.toLocaleString()} coins** (${mult}x)!` : `❌ Lost **${bet.toLocaleString()} coins**.`}`,
+        fields: [{ name: "💰 New Balance", value: `**${data.coins.toLocaleString()} coins**`, inline: true }],
+        footer: { text: "WA99 Clan Casino 🎲" },
+        timestamp: new Date().toISOString(),
+      }],
+    },
+  });
+}
+
+async function handleRoulette(interaction, kv) {
+  if (!inBotChannel(interaction)) return wrongChannel();
+  const user    = interaction.member?.user ?? interaction.user;
+  const betType = interaction.data.options.find(o => o.name === "bet")?.value;  // red/black/dozen1/dozen2/dozen3/number
+  const betVal  = interaction.data.options.find(o => o.name === "value")?.value; // for number bet: 0–36
+  const bet     = Number(interaction.data.options.find(o => o.name === "amount")?.value);
+  if (bet < GAMBLE_BET_MIN) return ephemeral(`❌ Minimum bet is **${GAMBLE_BET_MIN} coins**.`);
+  if (bet > GAMBLE_BET_MAX) return ephemeral(`❌ Maximum bet is **${GAMBLE_BET_MAX.toLocaleString()} coins**.`);
+
+  const data = await getUserData(kv, user.id);
+  if ((data.coins || 0) < bet) return ephemeral(`❌ Not enough coins! You have **${(data.coins||0).toLocaleString()}**.`);
+
+  const spin   = randInt(0, ROULETTE_NUMBERS - 1); // 0–36
+  const isRed  = ROULETTE_RED_NUMBERS.includes(spin);
+  const color  = spin === 0 ? "🟢 Green" : isRed ? "🔴 Red" : "⚫ Black";
+
+  let won = false, mult = 0, betLabel = "";
+
+  if (betType === "red")    { won = spin !== 0 && isRed;          mult = ROULETTE_RED_MULT;    betLabel = "🔴 Red";         }
+  if (betType === "black")  { won = spin !== 0 && !isRed;         mult = ROULETTE_RED_MULT;    betLabel = "⚫ Black";       }
+  if (betType === "dozen1") { won = spin >= 1 && spin <= 12;      mult = ROULETTE_DOZEN_MULT;  betLabel = "1️⃣ Dozen 1–12";  }
+  if (betType === "dozen2") { won = spin >= 13 && spin <= 24;     mult = ROULETTE_DOZEN_MULT;  betLabel = "2️⃣ Dozen 13–24"; }
+  if (betType === "dozen3") { won = spin >= 25 && spin <= 36;     mult = ROULETTE_DOZEN_MULT;  betLabel = "3️⃣ Dozen 25–36"; }
+  if (betType === "number") {
+    const num = Number(betVal ?? 0);
+    won = spin === num;
+    mult = ROULETTE_NUMBER_MULT;
+    betLabel = `🎯 Number ${num}`;
+  }
+
+  const payout = won ? Math.floor(bet * mult) : 0;
+  data.coins   = (data.coins || 0) - bet + payout;
+  if (data.coins < 0) data.coins = 0;
+  if (won) data.totalCoinsEarned = (data.totalCoinsEarned || 0) + payout;
+  await setUserData(kv, user.id, data);
+
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: won ? 0x57f287 : 0xed4245,
+        title: "🎡 Roulette",
+        description: [
+          `The wheel landed on **${spin}** — ${color}`,
+          `You bet on **${betLabel}** (${mult}x)`,
+          "",
+          won ? `✅ **You won ${payout.toLocaleString()} coins!**` : `❌ **You lost ${bet.toLocaleString()} coins.**`,
+        ].join("\n"),
+        fields: [{ name: "💰 New Balance", value: `**${data.coins.toLocaleString()} coins**`, inline: true }],
+        footer: { text: "WA99 Clan Casino 🎡 • Red/Black=2x | Dozen=3x | Number=35x" },
+        timestamp: new Date().toISOString(),
+      }],
+    },
+  });
+}
+
+async function handleBlackjack(interaction, kv) {
+  if (!inBotChannel(interaction)) return wrongChannel();
+  const user = interaction.member?.user ?? interaction.user;
+  const bet  = Number(interaction.data.options.find(o => o.name === "amount")?.value);
+  if (bet < GAMBLE_BET_MIN) return ephemeral(`❌ Minimum bet is **${GAMBLE_BET_MIN} coins**.`);
+  if (bet > GAMBLE_BET_MAX) return ephemeral(`❌ Maximum bet is **${GAMBLE_BET_MAX.toLocaleString()} coins**.`);
+  const data = await getUserData(kv, user.id);
+  if ((data.coins || 0) < bet) return ephemeral(`❌ Not enough coins! You have **${(data.coins||0).toLocaleString()}**.`);
+
+  const CARD_NAMES = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+  const CARD_SUITS = ["♠","♥","♦","♣"];
+  const deck = [];
+  for (const suit of CARD_SUITS) for (const name of CARD_NAMES) deck.push({ name, suit });
+  // Shuffle
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+
+  function cardVal(card) {
+    if (card.name === "A") return 11;
+    if (["J","Q","K"].includes(card.name)) return 10;
+    return Number(card.name);
+  }
+  function handValue(hand) {
+    let total = hand.reduce((s, c) => s + cardVal(c), 0);
+    let aces  = hand.filter(c => c.name === "A").length;
+    while (total > 21 && aces > 0) { total -= 10; aces--; }
+    return total;
+  }
+  function fmt(hand) { return hand.map(c => `\`${c.name}${c.suit}\``).join(" "); }
+
+  const playerHand = [deck.pop(), deck.pop()];
+  const dealerHand = [deck.pop(), deck.pop()];
+
+  // Player stands at 17+ (simplified auto-play), hits below
+  while (handValue(playerHand) < BLACKJACK_DEALER_STAND) playerHand.push(deck.pop());
+  // Dealer hits to stand threshold
+  while (handValue(dealerHand) < BLACKJACK_DEALER_STAND) dealerHand.push(deck.pop());
+
+  const playerVal = handValue(playerHand);
+  const dealerVal = handValue(dealerHand);
+  const isBlackjack = playerHand.length === 2 && playerVal === 21;
+  const playerBust  = playerVal > 21;
+  const dealerBust  = dealerVal > 21;
+
+  let won = false, push = false, mult = BLACKJACK_WIN_MULT;
+  if (playerBust) { won = false; }
+  else if (isBlackjack && dealerVal !== 21) { won = true; mult = BLACKJACK_BLACKJACK_MULT; }
+  else if (dealerBust) { won = true; }
+  else if (playerVal > dealerVal) { won = true; }
+  else if (playerVal === dealerVal) { push = true; }
+
+  const payout = push ? bet : won ? Math.floor(bet * mult) : 0;
+  data.coins   = (data.coins || 0) - bet + payout;
+  if (data.coins < 0) data.coins = 0;
+  if (won) data.totalCoinsEarned = (data.totalCoinsEarned || 0) + payout;
+  await setUserData(kv, user.id, data);
+
+  let resultText;
+  if (push)            resultText = `🤝 **Push!** Tie — your bet returned.`;
+  else if (playerBust) resultText = `💥 **Bust!** You went over 21. Lost **${bet.toLocaleString()} coins**.`;
+  else if (won && isBlackjack) resultText = `🃏 **BLACKJACK!** Won **${payout.toLocaleString()} coins** (${mult}x)!`;
+  else if (won)        resultText = `✅ **You win!** Won **${payout.toLocaleString()} coins** (${mult}x)!`;
+  else                 resultText = `❌ **Dealer wins.** Lost **${bet.toLocaleString()} coins**.`;
+
+  return json({
+    type: 4,
+    data: {
+      embeds: [{
+        color: won ? 0x57f287 : push ? 0xfee75c : 0xed4245,
+        title: "🃏 Blackjack",
+        fields: [
+          { name: `🧑 Your Hand (${playerVal})`,     value: fmt(playerHand),                                    inline: false },
+          { name: `🏠 Dealer's Hand (${dealerVal})`, value: fmt(dealerHand),                                    inline: false },
+          { name: "Result",                           value: resultText,                                         inline: false },
+          { name: "💰 New Balance",                   value: `**${data.coins.toLocaleString()} coins**`,         inline: true  },
+        ],
+        footer: { text: `WA99 Clan Casino 🃏 • Player & dealer stand at ${BLACKJACK_DEALER_STAND}` },
+        timestamp: new Date().toISOString(),
+      }],
+    },
+  });
+}
+
 // ─── Message XP Handler ───────────────────────────────────────────────────────
 async function handleMessageXP(body, kv, secret) {
   if (body.secret !== secret) return new Response("Unauthorized", { status: 401 });
@@ -1613,6 +1819,9 @@ export default {
         if (cmd === "buy")               return handleBuy(interaction, env.LEVELS_KV);
         if (cmd === "coinflip")          return handleCoinflip(interaction, env.LEVELS_KV);
         if (cmd === "slots")             return handleSlots(interaction, env.LEVELS_KV);
+        if (cmd === "dice")              return handleDice(interaction, env.LEVELS_KV);
+        if (cmd === "roulette")          return handleRoulette(interaction, env.LEVELS_KV);
+        if (cmd === "blackjack")         return handleBlackjack(interaction, env.LEVELS_KV);
         if (cmd === "givexp")            return handleGiveXP(interaction, env.LEVELS_KV);
         if (cmd === "xpevent")           return handleXPEvent(interaction, env.LEVELS_KV);
         if (cmd === "addxp")             return handleAddXP(interaction, env.LEVELS_KV);
