@@ -151,17 +151,6 @@ async function flush() {
   }
 }
 
-// Ping the worker every 5 minutes to keep it warm and avoid cold start timeouts
-async function keepAlive() {
-  try {
-    const res = await fetch(WORKER_URL);
-    if (res.ok) console.log("🏓 Worker keepalive ping sent.");
-  } catch (err) {
-    console.error("Keepalive ping failed:", err.message);
-  }
-}
-
-setInterval(keepAlive, 30 * 1000); // every 30 seconds — Cloudflare goes cold fast
 setInterval(flush, FLUSH_INTERVAL_MS);
 
 client.login(BOT_TOKEN);
