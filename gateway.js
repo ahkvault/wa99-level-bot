@@ -6,6 +6,9 @@ const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const GATEWAY_SECRET = process.env.GATEWAY_SECRET;
 const FLUSH_INTERVAL_MS = 60_000; // flush every 60 seconds
 
+// ✅ All level-up announcements go here
+const LEVELUP_CHANNEL_ID = "1482536684557045963";
+
 const IGNORED_CHANNELS = (process.env.IGNORED_CHANNELS ?? "").split(",").filter(Boolean);
 
 if (!WORKER_URL || !BOT_TOKEN || !GATEWAY_SECRET) {
@@ -27,6 +30,7 @@ const client = new Client({
 client.once("ready", () => {
   console.log(`✅ WA99 Level Gateway connected as ${client.user.tag}`);
   console.log(`⏱️  Flushing XP every ${FLUSH_INTERVAL_MS / 1000}s`);
+  console.log(`📣 Level-up announcements → #${LEVELUP_CHANNEL_ID}`);
 });
 
 // Count messages in memory — zero Worker requests here
@@ -87,8 +91,19 @@ async function flush() {
       const result = await res.json();
 
       if (result.levelUp && result.embed) {
-        const channel = client.channels.cache.get(data.channelId);
-        if (channel) await channel.send(result.embed);
+        // Always post to the dedicated level-up channel, fall back to origin channel
+        const announceChannel =
+          client.channels.cache.get(LEVELUP_CHANNEL_ID) ??
+          client.channels.cache.get(data.channelId);
+
+        if (announceChannel) {
+          // Send the ping as plain content so the mention actually notifies,
+          // then the rich embed sits right below it
+          await announceChannel.send({
+            content: `<@${userId}>`,
+            ...result.embed,
+          });
+        }
       }
     } catch (err) {
       console.error(`Flush error for ${userId}:`, err.message);
