@@ -151,6 +151,7 @@ async function flush() {
   }
 }
 
+setInterval(() => fetch(WORKER_URL).catch(() => {}), 60_000); // keepalive — prevents cold starts
 setInterval(flush, FLUSH_INTERVAL_MS);
 
 client.login(BOT_TOKEN);
